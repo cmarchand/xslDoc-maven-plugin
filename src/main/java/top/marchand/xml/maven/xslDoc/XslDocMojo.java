@@ -4,7 +4,7 @@
  * the MPL was not distributed with this file, You 
  * can obtain one at https://mozilla.org/MPL/2.0/.
  */
-package top.marchand.xml.xslDoc;
+package top.marchand.xml.maven.xslDoc;
 
 import fr.efl.chaine.xslt.GauloisPipe;
 import fr.efl.chaine.xslt.InvalidSyntaxException;
@@ -30,6 +30,8 @@ import net.sf.saxon.s9api.XdmNode;
 import net.sf.saxon.s9api.XsltCompiler;
 import net.sf.saxon.s9api.XsltExecutable;
 import net.sf.saxon.s9api.XsltTransformer;
+import org.apache.maven.artifact.factory.ArtifactFactory;
+import org.apache.maven.artifact.factory.DefaultArtifactFactory;
 import org.apache.maven.doxia.sink.render.RenderingContext;
 import org.apache.maven.doxia.siterenderer.sink.SiteRendererSink;
 import org.apache.maven.plugin.AbstractMojo;
@@ -42,7 +44,6 @@ import org.apache.maven.reporting.MavenReport;
 import org.apache.maven.reporting.MavenReportException;
 import org.codehaus.doxia.sink.Sink;
 import org.codehaus.plexus.util.cli.Commandline;
-import org.nuiton.plugin.PluginHelper;
 import top.marchand.xml.protocols.ProtocolInstaller;
 
 /**
@@ -88,6 +89,11 @@ public class XslDocMojo extends AbstractMojo implements MavenReport {
             String jarPluginUrl = url.toExternalForm().substring(4);
             jarPluginUrl = jarPluginUrl.substring(0, jarPluginUrl.indexOf("!/"));
             getLog().debug("Jar File URL : "+jarPluginUrl);
+            
+            ArtifactFactory factory = new DefaultArtifactFactory();
+            factory.createPluginArtifact("top.marchand.xml", "xslDoc-maven-plugin", vr)
+            Commandline cmdLine = new Commandline();
+            cmdLine.
             
             
             ConfigUtil cu = new ConfigUtil(proc.getUnderlyingConfiguration(), piper.getUriResolver(), gauloisConfig.toURI().toURL().toExternalForm());
