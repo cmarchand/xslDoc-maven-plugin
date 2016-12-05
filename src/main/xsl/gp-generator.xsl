@@ -20,6 +20,10 @@
 		</xsl:copy>
 	</xsl:template>
 	
+	<xsl:template match="@*">
+		<xsl:copy-of select="."/>
+	</xsl:template>
+	
 	<xsl:template match="gp:params/gp:param[@name='sources']"/>
 	
 </xsl:stylesheet>

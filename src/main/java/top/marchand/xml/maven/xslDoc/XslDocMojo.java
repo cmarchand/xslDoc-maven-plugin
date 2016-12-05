@@ -7,31 +7,26 @@
 package top.marchand.xml.maven.xslDoc;
 
 import fr.efl.chaine.xslt.GauloisPipe;
-import fr.efl.chaine.xslt.InvalidSyntaxException;
 import fr.efl.chaine.xslt.SaxonConfigurationFactory;
-import fr.efl.chaine.xslt.config.Config;
-import fr.efl.chaine.xslt.config.ConfigUtil;
-import fr.efl.chaine.xslt.utils.ParameterValue;
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.net.URISyntaxException;
 import java.net.URL;
-import java.util.HashMap;
+import java.net.URLClassLoader;
 import java.util.Locale;
 import javax.xml.transform.stream.StreamSource;
 import net.sf.saxon.Configuration;
 import net.sf.saxon.s9api.DocumentBuilder;
 import net.sf.saxon.s9api.Processor;
-import net.sf.saxon.s9api.QName;
 import net.sf.saxon.s9api.SaxonApiException;
 import net.sf.saxon.s9api.Serializer;
 import net.sf.saxon.s9api.XdmNode;
 import net.sf.saxon.s9api.XsltCompiler;
 import net.sf.saxon.s9api.XsltExecutable;
 import net.sf.saxon.s9api.XsltTransformer;
-import org.apache.maven.artifact.factory.ArtifactFactory;
-import org.apache.maven.artifact.factory.DefaultArtifactFactory;
 import org.apache.maven.doxia.sink.render.RenderingContext;
 import org.apache.maven.doxia.siterenderer.sink.SiteRendererSink;
 import org.apache.maven.plugin.AbstractMojo;
@@ -43,6 +38,7 @@ import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.reporting.MavenReport;
 import org.apache.maven.reporting.MavenReportException;
 import org.codehaus.doxia.sink.Sink;
+import org.codehaus.plexus.util.cli.CommandLineException;
 import org.codehaus.plexus.util.cli.Commandline;
 import top.marchand.xml.protocols.ProtocolInstaller;
 
@@ -68,6 +64,9 @@ public class XslDocMojo extends AbstractMojo implements MavenReport {
     private Processor proc;
     private DocumentBuilder builder;
     private XsltCompiler xslCompiler;
+    
+    @Parameter(defaultValue = "${basedir}", readonly = true)
+    private File basedir;
 
 
     @Override
@@ -78,32 +77,40 @@ public class XslDocMojo extends AbstractMojo implements MavenReport {
             if(gauloisConfig==null) {
                 throw new MavenReportException("Unable to build gaulois-pipe config file. See previous errors.");
             }
-            GauloisPipe piper = new GauloisPipe(new SaxonConfigurationFactory() {
-                @Override
-                public Configuration getConfiguration() {
-                    return proc.getUnderlyingConfiguration();
-                }
-            });
-            // try to create commandLine
-            URL url = getClass().getResource("/top/marchand/xml/xslDoc/XslDocMojo.class");
-            String jarPluginUrl = url.toExternalForm().substring(4);
-            jarPluginUrl = jarPluginUrl.substring(0, jarPluginUrl.indexOf("!/"));
-            getLog().debug("Jar File URL : "+jarPluginUrl);
+            // create commandLine
+            String classPath = createClasspath();
+            Commandline cmd = new Commandline("java");
+            cmd.addArg(createArgument("-cp"));
+            cmd.addArg(createArgument(classPath));
+            cmd.addArg(createArgument(GauloisPipe.class.getName()));
+            cmd.addArg(createArgument("--config"));
+            cmd.addArg(createArgument(gauloisConfig));
+            cmd.addArg(createArgument("--instance-name"));
+            cmd.addArg(createArgument("XSL-DOC"));
+            cmd.addArg(createArgument("PARAMS"));
+            cmd.addArg(createArgument("sources="+basedir.toPath().relativize(xslDirectory.toPath())));
+            cmd.addArg(createArgument("outputFolder="+outputDirectory.getAbsolutePath()));
+            cmd.addArg(createArgument("basedir="+basedir.getAbsolutePath()));
             
-            ArtifactFactory factory = new DefaultArtifactFactory();
-            factory.createPluginArtifact("top.marchand.xml", "xslDoc-maven-plugin", vr)
-            Commandline cmdLine = new Commandline();
-            cmdLine.
+            getLog().info("CmdLine: "+cmd.toString());
+            Process process = cmd.execute();
+            // redirecting standard output
+            BufferedReader is = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            String s;
+            do {
+                s = is.readLine();
+                System.out.println(s);
+            } while(s!=null);
+            int ret = process.waitFor();
+            if(ret!=0) {
+                is = new BufferedReader(new InputStreamReader(process.getErrorStream()));
+                do {
+                    s = is.readLine();
+                    System.out.println(s);
+                } while(s!=null);
+                throw new MavenReportException("gaulois-pipe exit with code "+ret);
+            }
             
-            
-            ConfigUtil cu = new ConfigUtil(proc.getUnderlyingConfiguration(), piper.getUriResolver(), gauloisConfig.toURI().toURL().toExternalForm());
-            HashMap<String, ParameterValue> parameters = new HashMap<>();
-            parameters.put("sources", new ParameterValue("sources", xslDirectory.getAbsolutePath()));
-            parameters.put("outputFolder", new ParameterValue("outputFolder", outputDirectory.getAbsolutePath()));
-            Config config = cu.buildConfig(parameters);
-            piper.setConfig(config);
-            piper.setInstanceName("XSL-DOC");
-            piper.launch();
             if(gauloisConfig.exists()) {
                 if(keepGeneratedConfigFile) {
                     getLog().debug("Omitting config file deletion : "+gauloisConfig.getAbsolutePath());
@@ -111,7 +118,7 @@ public class XslDocMojo extends AbstractMojo implements MavenReport {
                     gauloisConfig.delete();
                 }
             }
-        } catch (SaxonApiException | IOException | InvalidSyntaxException | URISyntaxException ex) {
+        } catch (SaxonApiException | IOException | URISyntaxException | CommandLineException | InterruptedException ex) {
             throw new MavenReportException(ex.getMessage(), ex);
         }
     }
@@ -190,7 +197,6 @@ public class XslDocMojo extends AbstractMojo implements MavenReport {
         XdmNode configTemplate = builder.build(new StreamSource(templateStream));
         XsltExecutable exec = xslCompiler.compile(new StreamSource(getClass().getResourceAsStream("/gp-generator.xsl")));
         XsltTransformer transformer = exec.load();
-        transformer.setParameter(QName.XS_NAME, configTemplate);
         File configFile = File.createTempFile("gp-", ".xml");
         Serializer serializer = proc.newSerializer(configFile);
         serializer.setOutputProperty(Serializer.Property.INDENT, "yes");
@@ -209,6 +215,56 @@ public class XslDocMojo extends AbstractMojo implements MavenReport {
         proc = new Processor(Configuration.newConfiguration());
         builder = proc.newDocumentBuilder();
         xslCompiler = proc.newXsltCompiler();
+    }
+    
+    /**
+     * Creates the classpath, based on classloader.
+     * This works only if classloader is a URLClassLoader, which is guaranted
+     * in maven.
+     * @return The classpath to use in command line
+     * @throws URISyntaxException 
+     */
+    private String createClasspath() throws URISyntaxException {
+        StringBuilder sb = new StringBuilder();
+        String bestStart = null;
+        ClassLoader cl = getClass().getClassLoader();
+        if(cl instanceof URLClassLoader) {
+            URLClassLoader ucl = (URLClassLoader)cl;
+            for(URL u:ucl.getURLs()) {
+                String path = new File(u.toURI()).getAbsolutePath();
+                if(path.contains("slf4j") && path.contains("jcl")) {
+                    continue;
+                }
+                getLog().debug("Adding to classpath : "+u.toExternalForm());
+                if(bestStart==null) {
+                    bestStart = path;
+                } else {
+                    String tmp = bestStart;
+                    while(!path.startsWith(tmp) && tmp.length()>=2) {
+                        tmp = tmp.substring(0, tmp.length()-2);
+                    }
+                    if(tmp.length()>2 && !tmp.equals(System.getProperty("user.home"))) bestStart=tmp;
+                }
+                sb.append(path).append(File.pathSeparator);
+            }
+            // here, bestStart should be the .m2 repository
+            // awfull hack to add slf4j-api in classpath which is removed somewhere, don't know why
+            String slf4japiPath = bestStart.concat("org/slf4j/slf4j-api/1.5.6/slf4j-api-1.5.6.jar");
+            getLog().info("SLF4J: "+slf4japiPath);
+            sb.append(slf4japiPath);
+        }
+        return sb.toString();
+    }
+    
+    private Commandline.Argument createArgument(String value) {
+        Commandline.Argument arg = new Commandline.Argument();
+        arg.setLine(value);
+        return arg;
+    }
+    private Commandline.Argument createArgument(File file) {
+        Commandline.Argument arg = new Commandline.Argument();
+        arg.setFile(file);
+        return arg;
     }
     
 }
