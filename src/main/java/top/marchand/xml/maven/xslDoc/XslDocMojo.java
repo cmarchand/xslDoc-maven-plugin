@@ -6,8 +6,8 @@
  */
 package top.marchand.xml.maven.xslDoc;
 
+import top.marchand.xml.xsl.doc.GauloisPipeRunner;
 import fr.efl.chaine.xslt.GauloisPipe;
-import fr.efl.chaine.xslt.SaxonConfigurationFactory;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
@@ -82,32 +82,34 @@ public class XslDocMojo extends AbstractMojo implements MavenReport {
             Commandline cmd = new Commandline("java");
             cmd.addArg(createArgument("-cp"));
             cmd.addArg(createArgument(classPath));
+            cmd.addArg(createArgument(GauloisPipeRunner.class.getName()));
             cmd.addArg(createArgument(GauloisPipe.class.getName()));
             cmd.addArg(createArgument("--config"));
             cmd.addArg(createArgument(gauloisConfig));
             cmd.addArg(createArgument("--instance-name"));
             cmd.addArg(createArgument("XSL-DOC"));
             cmd.addArg(createArgument("PARAMS"));
-            cmd.addArg(createArgument("sources="+basedir.toPath().relativize(xslDirectory.toPath())));
-            cmd.addArg(createArgument("outputFolder="+outputDirectory.getAbsolutePath()));
             cmd.addArg(createArgument("basedir="+basedir.getAbsolutePath()));
+            cmd.addArg(createArgument("sources="+basedir.toPath().relativize(xslDirectory.toPath())));
+            cmd.addArg(createArgument("outputFolder="+outputDirectory.toURI().toURL().toExternalForm()));
             
-            getLog().info("CmdLine: "+cmd.toString());
+            getLog().debug("CmdLine: "+cmd.toString());
             Process process = cmd.execute();
             // redirecting standard output
             BufferedReader is = new BufferedReader(new InputStreamReader(process.getInputStream()));
             String s;
             do {
                 s = is.readLine();
-                System.out.println(s);
+                getLog().info(s);
+            } while(s!=null);
+            is = new BufferedReader(new InputStreamReader(process.getErrorStream()));
+            do {
+                s = is.readLine();
+                getLog().info(s);
             } while(s!=null);
             int ret = process.waitFor();
             if(ret!=0) {
-                is = new BufferedReader(new InputStreamReader(process.getErrorStream()));
-                do {
-                    s = is.readLine();
-                    System.out.println(s);
-                } while(s!=null);
+                // there is a bug, here
                 throw new MavenReportException("gaulois-pipe exit with code "+ret);
             }
             
