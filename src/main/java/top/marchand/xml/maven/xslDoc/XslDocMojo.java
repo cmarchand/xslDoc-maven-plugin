@@ -35,6 +35,7 @@ import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
+import org.apache.maven.project.ProjectUtils;
 import org.apache.maven.reporting.MavenReport;
 import org.apache.maven.reporting.MavenReportException;
 import org.codehaus.doxia.sink.Sink;
@@ -67,6 +68,9 @@ public class XslDocMojo extends AbstractMojo implements MavenReport {
     
     @Parameter(defaultValue = "${basedir}", readonly = true)
     private File basedir;
+    
+    @Parameter(defaultValue="${project.name}", readonly = true)
+    private String projectName;
 
 
     @Override
@@ -83,6 +87,7 @@ public class XslDocMojo extends AbstractMojo implements MavenReport {
             cmd.addArg(createArgument("-cp"));
             cmd.addArg(createArgument(classPath));
             cmd.addArg(createArgument(GauloisPipeRunner.class.getName()));
+            cmd.addArg(createArgument(projectName));
             cmd.addArg(createArgument(GauloisPipe.class.getName()));
             cmd.addArg(createArgument("--config"));
             cmd.addArg(createArgument(gauloisConfig));
