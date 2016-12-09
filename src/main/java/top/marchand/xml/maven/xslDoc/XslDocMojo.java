@@ -21,8 +21,11 @@ import javax.xml.transform.stream.StreamSource;
 import net.sf.saxon.Configuration;
 import net.sf.saxon.s9api.DocumentBuilder;
 import net.sf.saxon.s9api.Processor;
+import net.sf.saxon.s9api.QName;
+import net.sf.saxon.s9api.SAXDestination;
 import net.sf.saxon.s9api.SaxonApiException;
 import net.sf.saxon.s9api.Serializer;
+import net.sf.saxon.s9api.XdmAtomicValue;
 import net.sf.saxon.s9api.XdmNode;
 import net.sf.saxon.s9api.XsltCompiler;
 import net.sf.saxon.s9api.XsltExecutable;
@@ -35,12 +38,12 @@ import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
-import org.apache.maven.project.ProjectUtils;
 import org.apache.maven.reporting.MavenReport;
 import org.apache.maven.reporting.MavenReportException;
 import org.codehaus.doxia.sink.Sink;
 import org.codehaus.plexus.util.cli.CommandLineException;
 import org.codehaus.plexus.util.cli.Commandline;
+import top.marchand.xml.maven.xslDoc.renderer.SinkRendererContentHandler;
 import top.marchand.xml.protocols.ProtocolInstaller;
 
 /**
@@ -96,7 +99,7 @@ public class XslDocMojo extends AbstractMojo implements MavenReport {
             cmd.addArg(createArgument("PARAMS"));
             cmd.addArg(createArgument("basedir="+basedir.getAbsolutePath()));
             cmd.addArg(createArgument("sources="+basedir.toPath().relativize(xslDirectory.toPath())));
-            cmd.addArg(createArgument("outputFolder="+outputDirectory.toURI().toURL().toExternalForm()));
+            cmd.addArg(createArgument("outputFolder="+getOutputFolder().toURI().toURL().toExternalForm()));
             
             getLog().debug("CmdLine: "+cmd.toString());
             Process process = cmd.execute();
@@ -117,7 +120,10 @@ public class XslDocMojo extends AbstractMojo implements MavenReport {
                 // there is a bug, here
                 throw new MavenReportException("gaulois-pipe exit with code "+ret);
             }
-            
+            // entries.xml is generated, transform it
+            generateHtml(sink);
+            sink.flush();
+            sink.close();
             if(gauloisConfig.exists()) {
                 if(keepGeneratedConfigFile) {
                     getLog().debug("Omitting config file deletion : "+gauloisConfig.getAbsolutePath());
@@ -129,52 +135,55 @@ public class XslDocMojo extends AbstractMojo implements MavenReport {
             throw new MavenReportException(ex.getMessage(), ex);
         }
     }
+    
+    private void generateHtml(Sink sink) throws SaxonApiException {
+        XdmNode doc = proc.newDocumentBuilder().build(new File(getOutputFolder(),"entries.xml"));
+        XsltTransformer transformer = proc.newXsltCompiler().compile(new StreamSource(getClass().getResourceAsStream("/indexGenerator.xsl"))).load();
+        transformer.setInitialContextNode(doc);
+        Serializer serializer = proc.newSerializer(new File(getReportOutputDirectory(),getOutputName()+".html"));
+        transformer.setDestination(serializer);
+        transformer.setParameter(new QName("top:marchand:xml:xsl:doc","programName"), new XdmAtomicValue(projectName));
+        /* new SAXDestination(new SinkRendererContentHandler(sink, getLog())) */
+        transformer.transform();
+    }
 
     @Override
     public String getOutputName() {
-        getLog().debug("getOutputName()");
         return "XSL Documentation";
     }
 
     @Override
     public String getCategoryName() {
-        getLog().debug("getCategoryName()");
         return MavenReport.CATEGORY_PROJECT_REPORTS;
     }
 
     @Override
     public String getName(Locale locale) {
-        getLog().debug("getName(Locale)");
         return "XSL Doc";
     }
 
     @Override
     public String getDescription(Locale locale) {
-        getLog().debug("getDescription(Locale)");
         return "XSL documentation";
     }
 
     @Override
     public void setReportOutputDirectory(File file) {
-        getLog().debug("setOutputDirectory("+file.getAbsolutePath()+")");
         this.outputDirectory = file;
     }
 
     @Override
     public File getReportOutputDirectory() {
-        getLog().debug("getOutputDirectory() -> "+outputDirectory.getAbsolutePath());
         return outputDirectory;
     }
 
     @Override
     public boolean isExternalReport() {
-        getLog().debug("isExternalReport()");
         return true;
     }
 
     @Override
     public boolean canGenerateReport() {
-        getLog().debug("canGenerateReport()");
         return true;
     }
 
@@ -184,7 +193,7 @@ public class XslDocMojo extends AbstractMojo implements MavenReport {
             getLog().info("Skipping xsl doc generation");
             return;
         }
-        RenderingContext context = new RenderingContext( outputDirectory, getOutputName() + ".html" );
+        RenderingContext context = new RenderingContext( getOutputFolder(), getOutputName() + ".html" );
         SiteRendererSink sink = new SiteRendererSink( context );
         Locale locale = Locale.getDefault();
         try {
@@ -273,5 +282,7 @@ public class XslDocMojo extends AbstractMojo implements MavenReport {
         arg.setFile(file);
         return arg;
     }
-    
+    private File getOutputFolder() {
+        return new File(getReportOutputDirectory(),"xsldoc");
+    }
 }
