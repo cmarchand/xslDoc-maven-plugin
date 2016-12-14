@@ -16,13 +16,13 @@ import java.io.InputStreamReader;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.util.List;
 import java.util.Locale;
 import javax.xml.transform.stream.StreamSource;
 import net.sf.saxon.Configuration;
 import net.sf.saxon.s9api.DocumentBuilder;
 import net.sf.saxon.s9api.Processor;
 import net.sf.saxon.s9api.QName;
-import net.sf.saxon.s9api.SAXDestination;
 import net.sf.saxon.s9api.SaxonApiException;
 import net.sf.saxon.s9api.Serializer;
 import net.sf.saxon.s9api.XdmAtomicValue;
@@ -43,7 +43,6 @@ import org.apache.maven.reporting.MavenReportException;
 import org.codehaus.doxia.sink.Sink;
 import org.codehaus.plexus.util.cli.CommandLineException;
 import org.codehaus.plexus.util.cli.Commandline;
-import top.marchand.xml.maven.xslDoc.renderer.SinkRendererContentHandler;
 import top.marchand.xml.protocols.ProtocolInstaller;
 
 /**
@@ -53,6 +52,8 @@ import top.marchand.xml.protocols.ProtocolInstaller;
 @Mojo(name = "xsl-doc", threadSafe = true, defaultPhase = LifecyclePhase.PACKAGE)
 public class XslDocMojo extends AbstractMojo implements MavenReport {
     
+    private static final transient String NS_XSLDOC = "top:marchand:xml:maven:xslDoc";
+    
     @Parameter(required = true, defaultValue = "${project.build.directory}/xsldoc")
     private File outputDirectory;
     
@@ -61,6 +62,9 @@ public class XslDocMojo extends AbstractMojo implements MavenReport {
     
     @Parameter( alias = "xslDirectory", defaultValue = "${basedir}/src/main/xsl" )
     private File xslDirectory;
+    
+    @Parameter()
+    private List<File> xslDirectories;
     
     @Parameter(alias = "keepConfigFile", defaultValue = "false")
     private boolean keepGeneratedConfigFile;
@@ -98,7 +102,7 @@ public class XslDocMojo extends AbstractMojo implements MavenReport {
             cmd.addArg(createArgument("XSL-DOC"));
             cmd.addArg(createArgument("PARAMS"));
             cmd.addArg(createArgument("basedir="+basedir.getAbsolutePath()));
-            cmd.addArg(createArgument("sources="+basedir.toPath().relativize(xslDirectory.toPath())));
+//            cmd.addArg(createArgument("sources="+basedir.toPath().relativize(xslDirectory.toPath())));
             cmd.addArg(createArgument("outputFolder="+getOutputFolder().toURI().toURL().toExternalForm()));
             
             getLog().debug("CmdLine: "+cmd.toString());
@@ -143,7 +147,6 @@ public class XslDocMojo extends AbstractMojo implements MavenReport {
         Serializer serializer = proc.newSerializer(new File(getReportOutputDirectory(),getOutputName()+".html"));
         transformer.setDestination(serializer);
         transformer.setParameter(new QName("top:marchand:xml:xsl:doc","programName"), new XdmAtomicValue(projectName));
-        /* new SAXDestination(new SinkRendererContentHandler(sink, getLog())) */
         transformer.transform();
     }
 
@@ -203,19 +206,43 @@ public class XslDocMojo extends AbstractMojo implements MavenReport {
         }
     }
     
-    private File generateGauloisConfig() throws SaxonApiException, IOException {
+    /**
+     * Returns a relative to {@link #basedir} path of <tt>f</tt>
+     * @param f
+     * @return The path, uri "/" separators
+     */
+    private String relativize(File f) {
+        String tmp = basedir.toPath().relativize(f.toPath()).toString();
+        return tmp.replaceAll("\\\\", "/");
+    }
+    
+    private File generateGauloisConfig() throws SaxonApiException, IOException, MavenReportException {
         initSaxon();
         InputStream templateStream = getClass().getResourceAsStream("/xsl-doc_gp.xml");
         if(templateStream==null) {
             getLog().error("Unable to load /xsl-doc_gp.xml from classpath.");
             return null;
         }
-        XdmNode configTemplate = builder.build(new StreamSource(templateStream));
+        StreamSource sSource = new StreamSource(templateStream);
+        sSource.setSystemId("cp:/xsl-doc_gp.xml");
+        XdmNode configTemplate = builder.build(sSource);
         XsltExecutable exec = xslCompiler.compile(new StreamSource(getClass().getResourceAsStream("/gp-generator.xsl")));
         XsltTransformer transformer = exec.load();
         File configFile = File.createTempFile("gp-", ".xml");
         Serializer serializer = proc.newSerializer(configFile);
         serializer.setOutputProperty(Serializer.Property.INDENT, "yes");
+        StringBuilder sb = new StringBuilder();
+        if(xslDirectories!=null) {
+            for(File entry: xslDirectories) {
+                sb.append(relativize(entry)).append(":");
+            }
+        } else if(xslDirectory!=null) {
+            sb.append(relativize(xslDirectory)).append(":");
+        } else {
+            throw new MavenReportException("either xslDirectory or xslDirectories entries are required");
+        }
+        sb.deleteCharAt(sb.length()-1);
+        transformer.setParameter(new QName(NS_XSLDOC, "sources"), new XdmAtomicValue(sb.toString()));
         transformer.setDestination(serializer);
         transformer.setInitialContextNode(configTemplate);
         transformer.transform();
@@ -265,7 +292,7 @@ public class XslDocMojo extends AbstractMojo implements MavenReport {
             }
             // here, bestStart should be the .m2 repository
             // awfull hack to add slf4j-api in classpath which is removed somewhere, don't know why
-            String slf4japiPath = bestStart.concat("org/slf4j/slf4j-api/1.5.6/slf4j-api-1.5.6.jar");
+            String slf4japiPath = bestStart.concat("org/slf4j/slf4j-api/1.6.1/slf4j-api-1.6.1.jar");
             getLog().info("SLF4J: "+slf4japiPath);
             sb.append(slf4japiPath);
         }
@@ -279,7 +306,7 @@ public class XslDocMojo extends AbstractMojo implements MavenReport {
     }
     private Commandline.Argument createArgument(File file) {
         Commandline.Argument arg = new Commandline.Argument();
-        arg.setFile(file);
+        arg.setLine("\""+file.getAbsolutePath()+"\"");
         return arg;
     }
     private File getOutputFolder() {

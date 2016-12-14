@@ -4,7 +4,8 @@
 	xmlns:math="http://www.w3.org/2005/xpath-functions/math"
 	xmlns:xd="http://www.oxygenxml.com/ns/doc/xsl"
 	xmlns:gp="http://efl.fr/chaine/saxon-pipe/config"
-	exclude-result-prefixes="xs math xd"
+	xmlns:xsldoc="top:marchand:xml:maven:xslDoc"
+	exclude-result-prefixes="#all"
 	version="3.0">
 	<xd:doc scope="stylesheet">
 		<xd:desc>
@@ -13,6 +14,8 @@
 			<xd:p>Generates a gaulois-pipe configuration based on an existing configuration, by defining sources</xd:p>
 		</xd:desc>
 	</xd:doc>
+	
+	<xsl:param name="xsldoc:sources" as="xs:string"></xsl:param>
 	
 	<xsl:template match="node()">
 		<xsl:copy>
@@ -24,6 +27,25 @@
 		<xsl:copy-of select="."/>
 	</xsl:template>
 	
-	<xsl:template match="gp:params/gp:param[@name='sources']"/>
+	<xsl:template match="/gp:config/gp:sources">
+		<xsl:copy>
+			<xsl:for-each select="tokenize($xsldoc:sources,':')">
+				<xsl:sequence select="xsldoc:getFolder(.)"/>
+			</xsl:for-each>
+		</xsl:copy>
+	</xsl:template>
+	
+	<xsl:template match="gp:params/gp:param[@name=('sources','absoluteRootFolder')]"/>
+	
+	<xsl:template match="comment()" priority="+1"/>
+	
+	<xsl:function name="xsldoc:getFolder" as="element(gp:folder)">
+		<xsl:param name="entry" as="xs:string"/>
+		<xsl:sequence>
+			<folder href="{$entry}"  pattern=".*\.xsl" recurse="true" xmlns="http://efl.fr/chaine/saxon-pipe/config">
+				<param name="absoluteRootFolder" value="file:$[basedir]/{$entry}"/>
+			</folder>
+		</xsl:sequence>
+	</xsl:function>
 	
 </xsl:stylesheet>
