@@ -3,7 +3,7 @@
 
     <groupId>top.marchand.xml</groupId>
     <artifactId>xslDoc-maven-plugin</artifactId>
-    <version>0.2-SNAPSHOT</version>
+    <version>0.2</version>
     <packaging>maven-plugin</packaging>
 
     <name>xslDoc-maven-plugin</name>
@@ -81,7 +81,7 @@
         <dependency>
             <groupId>top.marchand.xml</groupId>
             <artifactId>xsl-doc</artifactId>
-            <version>1.1-SNAPSHOT</version>
+            <version>1.2</version>
         </dependency>
         <dependency>
             <groupId>org.apache.maven.doxia</groupId>
@@ -102,7 +102,6 @@
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
             <version>1.6.1</version>
-            <scope>compile</scope>
         </dependency>
     </dependencies>
 
@@ -233,6 +232,11 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
                 <version>2.10.3</version>
+            </plugin>
+            <plugin>
+              <groupId>top.marchand.xml</groupId>
+              <artifactId>xslDoc-maven-plugin</artifactId>
+              <version>${project.version}</version>
             </plugin>
         </plugins>
     </reporting>
