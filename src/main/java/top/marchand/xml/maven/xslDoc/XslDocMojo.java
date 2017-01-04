@@ -99,7 +99,7 @@ public class XslDocMojo extends AbstractMojo implements MavenReport {
             cmd.addArg(createArgument("XSL-DOC"));
             cmd.addArg(createArgument("PARAMS"));
             cmd.addArg(createArgument("basedir="+basedir.getAbsolutePath()));
-//            cmd.addArg(createArgument("sources="+basedir.toPath().relativize(xslDirectory.toPath())));
+// WARNING : let this parameter as the last one, it is used in GauloisPipeRunner
             cmd.addArg(createArgument("outputFolder="+getOutputFolder().toURI().toURL().toExternalForm()));
             
             getLog().debug("CmdLine: "+cmd.toString());
@@ -229,7 +229,7 @@ public class XslDocMojo extends AbstractMojo implements MavenReport {
         Serializer serializer = proc.newSerializer(configFile);
         serializer.setOutputProperty(Serializer.Property.INDENT, "yes");
         StringBuilder sb = new StringBuilder();
-        if(xslDirEntries!=null || xslDirEntries.length>0) {
+        if(xslDirEntries!=null && xslDirEntries.length>0) {
             for(XslDirEntry entry: xslDirEntries) {
                 addEntry(entry, sb);
             }
