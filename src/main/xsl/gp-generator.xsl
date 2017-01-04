@@ -40,10 +40,12 @@
 	<xsl:template match="comment()" priority="+1"/>
 	
 	<xsl:function name="xsldoc:getFolder" as="element(gp:folder)">
-		<xsl:param name="entry" as="xs:string"/>
+		<xsl:param name="pEntry" as="xs:string+"/>
+		<xsl:variable name="entry" as="xs:string+" select="tokenize($pEntry,'\|')"/>
 		<xsl:sequence>
-			<folder href="{$entry}"  pattern=".*\.xsl" recurse="true" xmlns="http://efl.fr/chaine/saxon-pipe/config">
-				<param name="absoluteRootFolder" value="file:$[basedir]/{$entry}"/>
+			<folder href="{$entry[1]}"  pattern=".*\.xsl" recurse="{if ($entry[3] eq 'true') then 'true' else 'false'}" xmlns="http://efl.fr/chaine/saxon-pipe/config">
+				<param name="absoluteRootFolder" value="file:$[basedir]/{$entry[1]}"/>
+			<param name="levelsToKeep" value="{$entry[2]}"/>
 			</folder>
 		</xsl:sequence>
 	</xsl:function>

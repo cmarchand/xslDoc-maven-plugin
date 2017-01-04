@@ -60,11 +60,8 @@ public class XslDocMojo extends AbstractMojo implements MavenReport {
     @Parameter(defaultValue = "false", property = "maven.javadoc.skip")
     private boolean skip;
     
-    @Parameter( alias = "xslDirectory", defaultValue = "${basedir}/src/main/xsl" )
-    private File xslDirectory;
-    
-    @Parameter()
-    private List<File> xslDirectories;
+    @Parameter( alias = "xslDirEntries")
+    private XslDirEntry[] xslDirEntries;
     
     @Parameter(alias = "keepConfigFile", defaultValue = "false")
     private boolean keepGeneratedConfigFile;
@@ -232,21 +229,25 @@ public class XslDocMojo extends AbstractMojo implements MavenReport {
         Serializer serializer = proc.newSerializer(configFile);
         serializer.setOutputProperty(Serializer.Property.INDENT, "yes");
         StringBuilder sb = new StringBuilder();
-        if(xslDirectories!=null) {
-            for(File entry: xslDirectories) {
-                sb.append(relativize(entry)).append(":");
+        if(xslDirEntries!=null || xslDirEntries.length>0) {
+            for(XslDirEntry entry: xslDirEntries) {
+                addEntry(entry, sb);
             }
-        } else if(xslDirectory!=null) {
-            sb.append(relativize(xslDirectory)).append(":");
         } else {
-            throw new MavenReportException("either xslDirectory or xslDirectories entries are required");
+            XslDirEntry entry = new XslDirEntry("src/main/xsl", 0, true);
+            addEntry(entry, sb);
         }
         sb.deleteCharAt(sb.length()-1);
+        getLog().debug("data=" + sb.toString());
         transformer.setParameter(new QName(NS_XSLDOC, "sources"), new XdmAtomicValue(sb.toString()));
         transformer.setDestination(serializer);
         transformer.setInitialContextNode(configTemplate);
         transformer.transform();
         return configFile;
+    }
+    
+    private void addEntry(XslDirEntry entry, StringBuilder sb) {
+        sb.append(relativize(entry.getXslDirectory(basedir))).append("|").append(entry.levelsToKeep).append("|").append(entry.recurse).append(":");
     }
     
     /**
@@ -278,7 +279,6 @@ public class XslDocMojo extends AbstractMojo implements MavenReport {
                 if(path.contains("slf4j") && path.contains("jcl")) {
                     continue;
                 }
-                getLog().debug("Adding to classpath : "+u.toExternalForm());
                 if(bestStart==null) {
                     bestStart = path;
                 } else {
@@ -293,7 +293,6 @@ public class XslDocMojo extends AbstractMojo implements MavenReport {
             // here, bestStart should be the .m2 repository
             // awfull hack to add slf4j-api in classpath which is removed somewhere, don't know why
             String slf4japiPath = bestStart.concat("org/slf4j/slf4j-api/1.6.1/slf4j-api-1.6.1.jar");
-            getLog().info("SLF4J: "+slf4japiPath);
             sb.append(slf4japiPath);
         }
         return sb.toString();
