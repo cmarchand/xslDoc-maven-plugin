@@ -3,7 +3,7 @@
 
     <groupId>top.marchand.xml</groupId>
     <artifactId>xslDoc-maven-plugin</artifactId>
-    <version>0.5-SNAPSHOT</version>
+    <version>0.6</version>
     <packaging>maven-plugin</packaging>
 
     <name>xslDoc-maven-plugin</name>
@@ -53,7 +53,11 @@
             <exclusions>
                 <exclusion>
                     <groupId>org.slf4j</groupId>
-                    <artifactId>*</artifactId>
+                    <artifactId>slf4j-jdk14</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>jcl-over-slf4j</artifactId>
                 </exclusion>
             </exclusions>
         </dependency>
@@ -81,7 +85,7 @@
         <dependency>
             <groupId>top.marchand.xml</groupId>
             <artifactId>xsl-doc</artifactId>
-            <version>1.2</version>
+            <version>1.4</version>
         </dependency>
         <dependency>
             <groupId>org.apache.maven.doxia</groupId>
