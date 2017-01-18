@@ -95,6 +95,7 @@ public class XslDocMojo extends AbstractMojo implements MavenReport {
             cmd.addArg(createArgument(GauloisPipe.class.getName()));
             cmd.addArg(createArgument("--config"));
             cmd.addArg(createArgument(gauloisConfig));
+            // cmd.addArg(createArgument(gauloisConfig.toURI().toURL().toExternalForm()));
             cmd.addArg(createArgument("--instance-name"));
             cmd.addArg(createArgument("XSL-DOC"));
             cmd.addArg(createArgument("PARAMS"));
