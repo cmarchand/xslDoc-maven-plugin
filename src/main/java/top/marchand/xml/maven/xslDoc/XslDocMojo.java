@@ -16,7 +16,6 @@ import java.io.InputStreamReader;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLClassLoader;
-import java.util.List;
 import java.util.Locale;
 import javax.xml.transform.stream.StreamSource;
 import net.sf.saxon.Configuration;
@@ -67,7 +66,7 @@ public class XslDocMojo extends AbstractMojo implements MavenReport {
     private boolean keepGeneratedConfigFile;
     
     @Parameter
-    private String messageListener;
+    private boolean showMessages;
     
     private Processor proc;
     private DocumentBuilder builder;
@@ -96,9 +95,9 @@ public class XslDocMojo extends AbstractMojo implements MavenReport {
             cmd.addArg(createArgument(GauloisPipeRunner.class.getName()));
             cmd.addArg(createArgument(projectName));
             cmd.addArg(createArgument(GauloisPipe.class.getName()));
-            if(messageListener!=null) {
+            if(showMessages) {
                 cmd.addArg(createArgument("--msg-listener"));
-                cmd.addArg(createArgument(messageListener));
+                cmd.addArg(createArgument("fr.efl.inneo.log.XsltMessageListener"));
             }
             cmd.addArg(createArgument("--config"));
             cmd.addArg(createArgument(gauloisConfig));
