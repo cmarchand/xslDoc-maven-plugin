@@ -107,6 +107,11 @@
             <artifactId>slf4j-api</artifactId>
             <version>1.6.1</version>
         </dependency>
+        <dependency>
+            <groupId>fr.efl.saxon</groupId>
+            <artifactId>log4j-message-listener</artifactId>
+            <version>1.1.0</version>
+        </dependency>
     </dependencies>
 
     <distributionManagement>

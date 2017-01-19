@@ -66,6 +66,9 @@ public class XslDocMojo extends AbstractMojo implements MavenReport {
     @Parameter(alias = "keepConfigFile", defaultValue = "false")
     private boolean keepGeneratedConfigFile;
     
+    @Parameter
+    private String messageListener;
+    
     private Processor proc;
     private DocumentBuilder builder;
     private XsltCompiler xslCompiler;
@@ -93,13 +96,18 @@ public class XslDocMojo extends AbstractMojo implements MavenReport {
             cmd.addArg(createArgument(GauloisPipeRunner.class.getName()));
             cmd.addArg(createArgument(projectName));
             cmd.addArg(createArgument(GauloisPipe.class.getName()));
+            if(messageListener!=null) {
+                cmd.addArg(createArgument("--msg-listener"));
+                cmd.addArg(createArgument(messageListener));
+            }
             cmd.addArg(createArgument("--config"));
             cmd.addArg(createArgument(gauloisConfig));
             // cmd.addArg(createArgument(gauloisConfig.toURI().toURL().toExternalForm()));
             cmd.addArg(createArgument("--instance-name"));
             cmd.addArg(createArgument("XSL-DOC"));
             cmd.addArg(createArgument("PARAMS"));
-            cmd.addArg(createArgument("basedir="+basedir.getAbsolutePath()));
+            // we must replace "\" by "/" because basedir will be concat to create a URL
+            cmd.addArg(createArgument("basedir="+basedir.getAbsolutePath().replaceAll("\\\\", "/")));
 // WARNING : let this parameter as the last one, it is used in GauloisPipeRunner
             cmd.addArg(createArgument("outputFolder="+getOutputFolder().toURI().toURL().toExternalForm()));
             
