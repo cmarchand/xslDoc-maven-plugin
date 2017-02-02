@@ -35,7 +35,8 @@
 		</xsl:copy>
 	</xsl:template>
 	
-	<xsl:template match="gp:params/gp:param[@name=('sources','absoluteRootFolder')]"/>
+	<!--xsl:template match="gp:params/gp:param[@name=('sources','absoluteRootFolder')]"/-->
+	<xsl:template match="gp:params"/>
 	
 	<xsl:template match="comment()" priority="+1"/>
 	

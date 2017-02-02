@@ -42,6 +42,7 @@ import org.apache.maven.reporting.MavenReportException;
 import org.codehaus.doxia.sink.Sink;
 import org.codehaus.plexus.util.cli.CommandLineException;
 import org.codehaus.plexus.util.cli.Commandline;
+import top.marchand.xml.maven.xslDoc.utils.XsltMessageListener;
 import top.marchand.xml.protocols.ProtocolInstaller;
 
 /**
@@ -97,11 +98,13 @@ public class XslDocMojo extends AbstractMojo implements MavenReport {
             cmd.addArg(createArgument(GauloisPipe.class.getName()));
             if(showMessages) {
                 cmd.addArg(createArgument("--msg-listener"));
-                cmd.addArg(createArgument("fr.efl.inneo.log.XsltMessageListener"));
+                cmd.addArg(createArgument(XsltMessageListener.class.getName()));
             }
             cmd.addArg(createArgument("--config"));
             cmd.addArg(createArgument(gauloisConfig));
             // cmd.addArg(createArgument(gauloisConfig.toURI().toURL().toExternalForm()));
+            cmd.addArg(createArgument("--working-dir"));
+            cmd.addArg(createArgument(basedir.getAbsolutePath()));
             cmd.addArg(createArgument("--instance-name"));
             cmd.addArg(createArgument("XSL-DOC"));
             cmd.addArg(createArgument("PARAMS"));
