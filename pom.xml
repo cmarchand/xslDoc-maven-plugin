@@ -3,7 +3,7 @@
 
     <groupId>top.marchand.xml</groupId>
     <artifactId>xslDoc-maven-plugin</artifactId>
-    <version>0.9-SNAPSHOT</version>
+    <version>0.9</version>
     <packaging>maven-plugin</packaging>
 
     <name>xslDoc-maven-plugin</name>
@@ -85,7 +85,7 @@
         <dependency>
             <groupId>top.marchand.xml</groupId>
             <artifactId>xsl-doc</artifactId>
-            <version>1.6-SNAPSHOT</version>
+            <version>1.6</version>
         </dependency>
         <dependency>
             <groupId>org.apache.maven.doxia</groupId>
