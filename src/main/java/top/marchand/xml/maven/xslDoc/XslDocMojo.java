@@ -78,6 +78,9 @@ public class XslDocMojo extends AbstractMojo implements MavenReport {
     
     @Parameter(defaultValue="${project.name}", readonly = true)
     private String projectName;
+    
+    @Parameter
+    private File catalog;
 
 
     @Override
@@ -93,6 +96,9 @@ public class XslDocMojo extends AbstractMojo implements MavenReport {
             Commandline cmd = new Commandline("java");
             cmd.addArg(createArgument("-cp"));
             cmd.addArg(createArgument(classPath));
+            if(catalog!=null && catalog.exists()) {
+                cmd.addArg(createArgument("-Dxml.catalog.files="+catalog.getAbsolutePath()));
+            }
             cmd.addArg(createArgument(GauloisPipeRunner.class.getName()));
             cmd.addArg(createArgument(projectName));
             cmd.addArg(createArgument(GauloisPipe.class.getName()));
@@ -256,7 +262,7 @@ public class XslDocMojo extends AbstractMojo implements MavenReport {
         transformer.transform();
         return configFile;
     }
-    
+        
     private void addEntry(XslDirEntry entry, StringBuilder sb) {
         sb.append(relativize(entry.getXslDirectory(basedir))).append("|").append(entry.levelsToKeep).append("|").append(entry.recurse).append(":");
     }
