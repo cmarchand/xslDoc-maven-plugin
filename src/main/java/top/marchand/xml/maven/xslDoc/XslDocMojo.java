@@ -317,7 +317,9 @@ public class XslDocMojo extends AbstractMojo implements MavenReport {
     
     private Commandline.Argument createArgument(String value) {
         Commandline.Argument arg = new Commandline.Argument();
-        arg.setLine(value);
+        String sVal = value;
+        if(value.contains(" ")) sVal = "\""+value+"\"";
+        arg.setLine(sVal);
         return arg;
     }
     private Commandline.Argument createArgument(File file) {
