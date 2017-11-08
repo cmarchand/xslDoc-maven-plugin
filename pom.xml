@@ -3,7 +3,7 @@
 
     <groupId>top.marchand.xml</groupId>
     <artifactId>xslDoc-maven-plugin</artifactId>
-    <version>0.11-SNAPSHOT</version>
+    <version>0.11</version>
     <packaging>maven-plugin</packaging>
 
     <name>xslDoc-maven-plugin</name>
